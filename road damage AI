@@ -1,0 +1,135 @@
+<?php
+/* ---------- BACKEND LOGIC ---------- */
+$dataFile = "road_data.json";
+
+/* Handle IoT Data Submission */
+if (isset($_POST['submit'])) {
+    $entry = [
+        "location" => $_POST['location'],
+        "severity" => $_POST['severity'],
+        "type" => $_POST['type'],
+        "status" => "Pending",
+        "timestamp" => time()
+    ];
+
+    file_put_contents($dataFile, json_encode($entry) . PHP_EOL, FILE_APPEND);
+}
+
+/* Read Data */
+$records = [];
+if (file_exists($dataFile)) {
+    $lines = file($dataFile);
+    foreach ($lines as $line) {
+        $records[] = json_decode($line, true);
+    }
+}
+
+/* Escalation Logic (24 hours) */
+function checkEscalation($time) {
+    return (time() - $time > 86400) ? "⚠ Escalated to Commissioner" : "In Progress";
+}
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Road Monitoring System</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            background: #fff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        input, select, button {
+            padding: 8px;
+            margin: 5px;
+        }
+
+        table {
+            width: 100%;
+            background: #fff;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+
+        th {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .High { color: red; font-weight: bold; }
+        .Medium { color: orange; font-weight: bold; }
+        .Low { color: green; font-weight: bold; }
+
+        .escalate {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Municipal Smart Road Damage Dashboard</h1>
+
+<!-- --------- DATA INPUT (IoT SIMULATION) ---------- -->
+<form method="POST">
+    <h3>Simulate IoT Data Upload</h3>
+    <input type="text" name="location" placeholder="Location" required>
+    
+    <select name="type">
+        <option>Pothole</option>
+        <option>Hump</option>
+        <option>Vibration</option>
+    </select>
+
+    <select name="severity">
+        <option>Low</option>
+        <option>Medium</option>
+        <option>High</option>
+    </select>
+
+    <button type="submit" name="submit">Submit Data</button>
+</form>
+
+<!-- --------- DASHBOARD ---------- -->
+<table>
+    <tr>
+        <th>Location</th>
+        <th>Damage Type</th>
+        <th>Severity</th>
+        <th>Status</th>
+        <th>Escalation</th>
+    </tr>
+
+    <?php foreach ($records as $r): ?>
+        <tr>
+            <td><?= $r['location'] ?></td>
+            <td><?= $r['type'] ?></td>
+            <td class="<?= $r['severity'] ?>"><?= $r['severity'] ?></td>
+            <td><?= $r['status'] ?></td>
+            <td class="escalate"><?= checkEscalation($r['timestamp']) ?></td>
+        </tr>
+    <?php endforeach; ?>
+</table>
+
+</body>
+</html>
